@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "coulson"
+version = "0.1"
+description = "Control types of variables in runtime."
+repository = "https://github.com/Tiendil/coulson"
+authors = ["Aliaksei Yaletski (Tiendil) <a.eletsky@gmail.com>"]
+license = "BSD3"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6"
+hypothesis = "^5"
+pretty_errors = "^1"
