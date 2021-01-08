@@ -1,5 +1,6 @@
 
 import gc
+import weakref
 import inspect
 
 
@@ -109,3 +110,12 @@ def frame_variables(frame):
     # ????
     for name in frame.f_code.co_varnames:
         yield name
+
+
+def determine_function(frame, cache=weakref.WeakValueDictionary()):
+    function = cache.get(frame.f_code)
+
+    if function is not None:
+        return function
+
+    return search_function(frame)
