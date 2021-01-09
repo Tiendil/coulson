@@ -3,17 +3,18 @@ import inspect
 import warnings
 import contextlib
 
+from . import exceptions
 from . import inspectors
 from . import namespaces
 from . import logic
 
 
-class TypeMistmatch(Exception):
+class AnnotationsMistmatch(Exception):
 
-    def __init__(self, stored_variable, current_variable):
-        message = ('Type mismatch\n'
-                   f'stored variable: {stored_variable}\n',
-                   f'current variable: {current_variable}')
+    def __init__(self, name, stored_annotation, new_annotation):
+        message = (f'Annotation mismatch for variable "{name}"\n'
+                   f'stored annotation: {stored_annotation}\n'
+                   f'new annotation: {new_annotation}')
 
         super().__init__(message)
 
@@ -29,33 +30,48 @@ def construct_variable(frame, name, value):
                                line=frame_info.lineno)
 
 
-def analyze_variable(frame, namespace, name):
+def analyze_variable(frame, function, namespace, name, checkers):
 
     initialized, value = inspectors.frame_variable_value(frame, name)
 
     if not initialized:
         return
 
+    current_variable = construct_variable(frame, name, value)
+
     stored_varible = namespace.get(name)
 
     if stored_varible is None:
-        namespace.register(construct_variable(frame, name, value))
-        return
+        namespace.register(current_variable)
+        stored_varible = current_variable
 
-    # TODO: rewrite to complex check
-    if stored_varible.assigment_type != type(value):
-        raise TypeMistmatch(stored_varible, construct_variable(frame, name, value))
+    for annotation in inspectors.find_annotations(frame, function, name):
+        if current_variable.annotation_type is None:
+            current_variable.annotation_type = annotation
+            continue
+
+        if current_variable.annotation_type != annotation:
+            raise AnnotationsMistmatch(name, current_variable.annotation_type, annotation)
+
+    for checker in checkers:
+        if checker.check(stored_varible, current_variable):
+            current_variable.merge(stored_varible)
+            return
+
+    raise exceptions.TypeMistmatch(stored_varible, current_variable)
 
 
 class Tracer:
-    __slots__ = ('_namespaces', 'initialized')
+    __slots__ = ('_namespaces', 'initialized', '_checkers')
 
     def __init__(self):
         self.initialized = False
         self._namespaces = None
+        self._checkers = None
 
-    def initialize(self, allowed_namespaces):
+    def initialize(self, allowed_namespaces, checkers):
         self._namespaces = namespaces.Container(allowed_namespaces)
+        self._checkers = checkers
         self.initialized = True
 
     def start_tracing(self):
@@ -108,6 +124,6 @@ class Tracer:
         # print('co_varnames', frame.f_code.co_varnames)
 
         for name in inspectors.frame_variables(frame):
-            analyze_variable(frame, namespace, name)
+            analyze_variable(frame, function, namespace, name, self._checkers)
 
         return

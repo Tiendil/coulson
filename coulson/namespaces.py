@@ -5,13 +5,17 @@ import dataclasses
 
 @dataclasses.dataclass
 class Variable:
-    __slots__ = ('name', 'annotation_type', 'assigment_type', 'file', 'line')
+    __slots__ = ('name', 'annotation_type', 'assigment_type', 'file', 'line', 'checked_annotations')
 
     name: str
     annotation_type: typing.Optional[type]
     assigment_type: typing.Optional[type]
     file: str
     line: int
+
+    def merge(self, other):
+        if self.annotation_type is None and other.annotation_type is not None:
+            self.annotation_type = other.annotation_type
 
 
 class Namespace:

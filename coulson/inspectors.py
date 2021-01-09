@@ -1,5 +1,7 @@
 
 import gc
+import sys
+import typing
 import weakref
 import inspect
 
@@ -119,3 +121,22 @@ def determine_function(frame, cache=weakref.WeakValueDictionary()):
         return function
 
     return search_function(frame)
+
+
+# TODO: optimize (add cache or smth equal)
+# TODO: check class annotations for methods
+# TODO: collect annotations recusevly from current function up to module through all namespaces
+def find_annotations(frame, function, name):
+    annotation = typing.get_type_hints(function,
+                                       globalns=frame.f_globals,
+                                       localns=frame.f_locals).get(name)
+
+    if annotation is not None:
+        yield annotation
+
+    annotation = typing.get_type_hints(sys.modules[function.__module__],
+                                       globalns=frame.f_globals,
+                                       localns=frame.f_locals).get(name)
+
+    if annotation is not None:
+        yield annotation
