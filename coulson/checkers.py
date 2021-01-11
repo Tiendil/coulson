@@ -36,6 +36,9 @@ class StrongTypeEquality(Checker):
         if super().check(stored, checked):
             return True
 
+        if stored.assigment_type is None:
+            return False
+
         if stored.assigment_type == checked.assigment_type:
             return True
 

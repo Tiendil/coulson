@@ -10,7 +10,7 @@
 
 # Qustions
 
-- How to work with container types?
 - How to work with optional (None) types?
 - How to work with self, class, and other variables with the same behaviour?
 - How to work with closures?
+- How to check generic types like dict[Key, Value]? Deduce Key, Values types with help of introspection of each step (too expensive)?
