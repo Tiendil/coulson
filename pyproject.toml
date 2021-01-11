@@ -11,5 +11,22 @@ python = "^3.9"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6"
-hypothesis = "^5"
+pytest-cov = "^2"
+pytest-xdist = "^2"
+pytest-randomly = "^3"
+pytest-clarity = "0.3.0a0"
+pytest-random-order = "^1"
+hypothesis = "^6"
 pretty_errors = "^1"
+six = "^1" # required by pytest-clarity
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "ERROR"
+log_level = "ERROR"
+xfail_strict = true
+# clarity: -vv --diff-type=split
+# cov: --cov=coulson
+# random-order: --random-order
+addopts = "--durations=3 -l --cov=coulson -vv --diff-type=split --random-order"
+testpaths = ["tests"]

@@ -3,13 +3,18 @@ import pretty_errors
 
 from . import example
 from . import tracers
+from . import checkers
 
 
 ALLOWED_NAMESPACES = ['coulson']
 
+CHECKERS = [checkers.SkipVariables(['self']),
+            checkers.AnnotationEquality(),
+            checkers.StrongTypeEquality()]
+
 tracer = tracers.Tracer()
 
-tracer.initialize(ALLOWED_NAMESPACES)
+tracer.initialize(ALLOWED_NAMESPACES, CHECKERS)
 
 with tracer.trace():
     z = example.test_function('13')

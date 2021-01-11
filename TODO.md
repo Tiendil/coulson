@@ -3,6 +3,7 @@
 
 - support older python versions
 - say thanks to typeguard (for inspiration)
+- try https://pypi.org/project/Faker/ for tests
 
 
 # Qustions
