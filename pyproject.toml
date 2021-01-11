@@ -21,6 +21,8 @@ pretty_errors = "^1"
 six = "^1" # required by pytest-clarity
 
 [tool.pytest.ini_options]
+# here the full (maximum) pytest config
+# use ./fast_tests.sh for run tests in process of development
 log_cli = true
 log_cli_level = "ERROR"
 log_level = "ERROR"
@@ -28,5 +30,6 @@ xfail_strict = true
 # clarity: -vv --diff-type=split
 # cov: --cov=coulson
 # random-order: --random-order
-addopts = "--durations=3 -l --cov=coulson -vv --diff-type=split --random-order"
+# hypothesis: --hypothesis-show-statistics
+addopts = "--durations=3 -l --cov=coulson -vv --diff-type=split --random-order --hypothesis-show-statistics"
 testpaths = ["tests"]

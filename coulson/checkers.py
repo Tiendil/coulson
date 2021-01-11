@@ -7,7 +7,10 @@ class Checker:
     __slots__ = ()
 
     def check(self, stored, checked):
-        raise NotImplementedError('Method MUST be defined in subclasses')
+        if stored.name != checked.name:
+            raise ValueError(f'variable names of "{stored}" and "{checked}" MUST be equal')
+
+        return False
 
 
 class SkipVariables(Checker):
@@ -17,6 +20,9 @@ class SkipVariables(Checker):
         self._names = names
 
     def check(self, stored, checked):
+        if super().check(stored, checked):
+            return True
+
         if stored.name in self._names:
             return True
 
@@ -27,6 +33,9 @@ class StrongTypeEquality(Checker):
     __slots__ = ()
 
     def check(self, stored, checked):
+        if super().check(stored, checked):
+            return True
+
         if stored.assigment_type == checked.assigment_type:
             return True
 
@@ -37,6 +46,9 @@ class AnnotationEquality(Checker):
     __slots__ = ()
 
     def check(self, stored, checked):
+        if super().check(stored, checked):
+            return True
+
         if stored.annotation_type is None and checked.annotation_type is None:
             return False
 
