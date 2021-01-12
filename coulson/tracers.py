@@ -46,6 +46,9 @@ def analyze_variable(frame, function, namespace, name, checkers):
         stored_varible = current_variable
 
     for annotation in inspectors.find_annotations(frame, function, name):
+        # TODO: here we MUST compare type to annotation
+        #       to ensure, that variable is consistent
+
         if current_variable.annotation_type is None:
             current_variable.annotation_type = annotation
             continue

@@ -8,7 +8,8 @@ from . import checkers
 
 ALLOWED_NAMESPACES = ['coulson']
 
-CHECKERS = [checkers.SkipVariables(['self']),
+CHECKERS = [checkers.EqualNames(),
+            checkers.SkipVariables(['self']),
             checkers.AnnotationEquality(),
             checkers.StrongTypeEquality()]
 

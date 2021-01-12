@@ -7,8 +7,16 @@ class Checker:
     __slots__ = ()
 
     def check(self, stored, checked):
+        raise NotImplementedError('Method must be redefined in child class')
+
+
+class EqualNames(Checker):
+
+    __slots__ = ()
+
+    def check(self, stored, checked):
         if stored.name != checked.name:
-            raise ValueError(f'variable names of "{stored}" and "{checked}" MUST be equal')
+            raise exceptions.TypeMistmatch(stored, checked)
 
         return False
 
@@ -20,9 +28,6 @@ class SkipVariables(Checker):
         self._names = names
 
     def check(self, stored, checked):
-        if super().check(stored, checked):
-            return True
-
         if stored.name in self._names:
             return True
 
@@ -33,9 +38,6 @@ class StrongTypeEquality(Checker):
     __slots__ = ()
 
     def check(self, stored, checked):
-        if super().check(stored, checked):
-            return True
-
         if stored.assigment_type is None:
             return False
 
@@ -49,14 +51,10 @@ class AnnotationEquality(Checker):
     __slots__ = ()
 
     def check(self, stored, checked):
-        if super().check(stored, checked):
-            return True
-
-        if stored.annotation_type is None and checked.annotation_type is None:
+        if stored.annotation_type is None or checked.annotation_type is None:
             return False
 
-        if not types_comparator.compare(stored.assigment_type,
-                                        checked.annotation_type):
+        if stored.annotation_type is not checked.annotation_type:
             raise exceptions.TypeMistmatch(stored, checked)
 
         return True
