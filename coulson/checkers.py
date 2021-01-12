@@ -7,7 +7,7 @@ class Checker:
     __slots__ = ()
 
     def check(self, stored, checked):
-        raise NotImplementedError('Method must be redefined in child class')
+        raise NotImplementedError('Method must be redefined in child class')
 
 
 class EqualNames(Checker):
@@ -54,6 +54,7 @@ class AnnotationEquality(Checker):
         if stored.annotation_type is None or checked.annotation_type is None:
             return False
 
+        # TODO: check inheritance?
         if stored.annotation_type is not checked.annotation_type:
             raise exceptions.TypeMistmatch(stored, checked)
 
