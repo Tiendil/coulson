@@ -49,18 +49,15 @@ def annotation_optional(draw, type):
     return typing.Optional[type]
 
 
-def annotation_none(draw, type):
-    return None
-
-
 def annotation_union(draw, type, types=types):
     return typing.Union[type, draw(types)]
 
 
-annotation_constructors = st.sampled_from([annotation_identity,
+annotation_constructors = st.sampled_from((annotation_identity,
                                            annotation_optional,
-                                           annotation_union,
-                                           annotation_none])
+                                           annotation_union))
+
+annotation_identity = st.just(annotation_identity)
 
 
 # TODO: refactor to recursion annotations construction
@@ -80,12 +77,12 @@ def variables(draw,
               names=variable_names,
               files=file_paths,
               lines=line_numbers,
-              types_with_annotations=types_with_annotations()):
+              types=types,
+              annotation_constructors=annotation_constructors):
 
-    type, annotation = draw(types_with_annotations)
+    new_type = draw(annotation_constructors)(draw, draw(types))
 
     return namespaces.Variable(name=draw(names),
-                               annotation_type=annotation,
-                               assigment_type=type,
+                               expected_type=new_type,
                                file=draw(files),
                                line=draw(lines))

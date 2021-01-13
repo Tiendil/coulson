@@ -1,28 +1,23 @@
 
-import typing
 import dataclasses
 
 
 @dataclasses.dataclass
 class Variable:
-    __slots__ = ('name', 'annotation_type', 'assigment_type', 'file', 'line', 'checked_annotations')
+    __slots__ = ('name', 'expected_type', 'file', 'line')
 
     name: str
-    annotation_type: typing.Optional[type]
-    assigment_type: typing.Optional[type]
+    expected_type: type
     file: str
     line: int
 
-    def merge(self, other):
-        if self.annotation_type is None and other.annotation_type is not None:
-            self.annotation_type = other.annotation_type
-
 
 class Namespace:
-    __slots__ = ('_variables', 'id')
+    __slots__ = ('_variables', 'id', 'mergers')
 
-    def __init__(self, id):
+    def __init__(self, id, mergers):
         self.id = id
+        self.mergers = mergers
         self._variables = {}
 
     def get(self, name, default=None):
@@ -34,37 +29,8 @@ class Namespace:
 
         self._variables[variable.name] = variable
 
+    def can_capture(self, namespace_id):
+        return namespace_id.startswith(self.id)
+
     def __in__(self, name):
         return name in self._variables
-
-
-class Container:
-    __slots__ = ('_namespaces', 'allowed_namespaces')
-
-    def __init__(self, allowed_namespaces):
-        self.allowed_namespaces = allowed_namespaces
-        self._namespaces = {}
-
-    def find_allowed_name(self, name):
-        for id in self.allowed_namespaces:
-            if name.startswith(id):
-                return id
-
-        return None
-
-    def find(self, name):
-        allowed_name = self.find_allowed_name(name)
-
-        if allowed_name is None:
-            return None
-
-        namespace = self._namespaces.get(allowed_name)
-
-        if namespace is not None:
-            return namespace
-
-        namespace = Namespace(allowed_name)
-
-        self._namespaces[allowed_name] = namespace
-
-        return namespace

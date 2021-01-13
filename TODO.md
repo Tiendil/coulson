@@ -6,7 +6,8 @@
 - try https://pypi.org/project/Faker/
 - try https://hypofuzz.com/
 - try https://github.com/Teemu/pytest-sugar/
-
+- rewrite exceptions.py
+- it simce, that trace function called before execution of opcode, so we can check types only on next call. As a result, line numbers will be incorret for detected types mismatch.
 
 # Qustions
 

@@ -3,84 +3,83 @@ import inspect
 import warnings
 import contextlib
 
+from . import types_comparators
 from . import exceptions
 from . import inspectors
 from . import namespaces
 from . import logic
 
 
-class AnnotationsMistmatch(Exception):
-
-    def __init__(self, name, stored_annotation, new_annotation):
-        message = (f'Annotation mismatch for variable "{name}"\n'
-                   f'stored annotation: {stored_annotation}\n'
-                   f'new annotation: {new_annotation}')
-
-        super().__init__(message)
-
-
-def construct_variable(frame, name, value):
-    frame_info = inspect.getframeinfo(frame)
-
-    # TODO: fill and check annotations
+def construct_variable(frame_info, name, expected_type):
     return namespaces.Variable(name=name,
-                               annotation_type=None,
-                               assigment_type=type(value),
+                               expected_type=expected_type,
                                file=frame_info.filename,
                                line=frame_info.lineno)
 
 
-def analyze_variable(frame, function, namespace, name, checkers):
+def analyze_variable(frame, function, namespace, name):
 
     initialized, value = inspectors.frame_variable_value(frame, name)
 
     if not initialized:
         return
 
-    current_variable = construct_variable(frame, name, value)
+    frame_info = inspect.getframeinfo(frame)
 
-    stored_varible = namespace.get(name)
+    annotation_type = None
 
-    if stored_varible is None:
-        namespace.register(current_variable)
-        stored_varible = current_variable
-
+    # TODO: make find_annotations functionality configurable
     for annotation in inspectors.find_annotations(frame, function, name):
-        # TODO: here we MUST compare type to annotation
-        #       to ensure, that variable is consistent
 
-        if current_variable.annotation_type is None:
-            current_variable.annotation_type = annotation
+        if annotation_type is None:
+            annotation_type = annotation
             continue
 
-        if current_variable.annotation_type != annotation:
-            raise AnnotationsMistmatch(name, current_variable.annotation_type, annotation)
+        # TODO: check if annotations is related to each other
+        #       or remove check at all, since annotations produced by programmer and they know what doing
+        if annotation_type is not annotation:
+            raise AnnotationsMistmatch(name, annotation_type, annotation)
 
-    for checker in checkers:
-        if checker.check(stored_varible, current_variable):
-            current_variable.merge(stored_varible)
+    value_type = type(value)
+
+    new_type = value_type
+
+    print(f'{new_type=} {annotation_type=}')
+
+    if annotation_type is not None:
+        if types_comparators.is_subtype_or_equal(new_type, annotation_type):
+            new_type = annotation_type
+        else:
+            raise exceptions.TypeAnnotationMismatch(name,
+                                                    value_type,
+                                                    annotation_type,
+                                                    frame_info.filename,
+                                                    frame_info.lineno)
+
+    stored_variable = namespace.get(name)
+
+    if stored_variable is None:
+        namespace.register(construct_variable(frame_info, name, new_type))
+        return
+
+    for merger in namespace.mergers:
+        if merger.merge(stored_variable, new_type):
             return
 
-    raise exceptions.TypeMistmatch(stored_varible, current_variable)
+    raise exceptions.TypeMistmatch(name,
+                                   stored_variable.expected_type,
+                                   new_type,
+                                   frame_info.filename,
+                                   frame_info.lineno)
 
 
 class Tracer:
-    __slots__ = ('_namespaces', 'initialized', '_checkers')
+    __slots__ = ('_namespaces', 'initialized', '_mergers')
 
-    def __init__(self):
-        self.initialized = False
-        self._namespaces = None
-        self._checkers = None
-
-    def initialize(self, allowed_namespaces, checkers):
-        self._namespaces = namespaces.Container(allowed_namespaces)
-        self._checkers = checkers
-        self.initialized = True
+    def __init__(self, namespaces):
+        self._namespaces = namespaces
 
     def start_tracing(self):
-        if not self.initialized:
-            raise Exception('Tracer is not initialized')
-
         sys.settrace(self.trace_callback)
 
     def stop_tracing(self):
@@ -112,21 +111,13 @@ class Tracer:
 
         function_namespace = logic.function_namespace(function)
 
-        namespace = self._namespaces.find(function_namespace)
+        for namespace in self._namespaces:
+            if not namespace.can_capture(function_namespace):
+                continue
 
-        if namespace is None:
-            return
+            for name in inspectors.frame_variables(frame):
+                analyze_variable(frame, function, namespace, name)
 
-        # print('-----------')
-        # print('NAMESPACE:', namespace.id)
-        # print(inspect.getframeinfo(frame))
-        # print('co_cellvars', frame.f_code.co_cellvars)
-        # print('co_freevars', frame.f_code.co_freevars)
-        # print('co_names', frame.f_code.co_names)
-        # print('co_varnames', frame.f_code.co_varnames)
-        # print('co_varnames', frame.f_code.co_varnames)
-
-        for name in inspectors.frame_variables(frame):
-            analyze_variable(frame, function, namespace, name, self._checkers)
+            break
 
         return
