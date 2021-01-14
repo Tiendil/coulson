@@ -8,13 +8,13 @@ Will raise an exception if see something like that:
 
 ``` python
 def my_function():
-	x = 666
+    x = 666
 
-	# other code
+    # other code
 
-	x = '666' # <- raise here
+    x = '666' # <- raise here
 
-	return x
+    return x
 ```
 
 # Current state
@@ -28,11 +28,11 @@ But it is working.
 More usage examples you can see in tests.
 
 ``` python
-	import os
+    import os
 
     from coulson import tracers, mergers, namespaces
 
-	PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
+    PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
 
     spaces = [namespaces.Namespace('my_project_django_models',
                                    filter=namespaces.Chained([namespaces.ModulePath(PROJECT_DIR),
