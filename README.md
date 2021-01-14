@@ -61,9 +61,9 @@ More usage examples you can see in tests.
 
     tracer.start_tracing()
 
-	# or
-	#
- 	# with tracer.trace():
-	#    do smth
+    # or
+    #
+    # with tracer.trace():
+    #    do smth
     #    pass
 ```
