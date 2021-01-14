@@ -1,4 +1,6 @@
 
+import os
+
 import pytest
 
 from coulson import tracers
@@ -9,8 +11,12 @@ from coulson import exceptions
 from .examples import simple
 
 
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+
+
 def tracer():
     spaces = [namespaces.Namespace('tests.examples',
+                                   filter=namespaces.ModulePath(os.path.join(CURRENT_DIR, 'examples')),
                                    mergers=[mergers.SkipVariables(['self']),
                                             mergers.TypeDependency()])]
     return tracers.Tracer(spaces)
@@ -52,3 +58,10 @@ def test_assigned_type_mismatch_between_calls():
     assert error.value.new_type == str
     assert error.value.file.endswith('simple.py')
     assert isinstance(error.value.line, int)
+
+
+def test_annotated_class_variables():
+
+    with tracer().trace():
+        from .examples import annotated_class_variables
+        pass

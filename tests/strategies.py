@@ -78,11 +78,13 @@ def variables(draw,
               files=file_paths,
               lines=line_numbers,
               types=types,
+              is_annotation=st.booleans(),
               annotation_constructors=annotation_constructors):
 
     new_type = draw(annotation_constructors)(draw, draw(types))
 
     return namespaces.Variable(name=draw(names),
                                expected_type=new_type,
+                               is_annotation=draw(is_annotation),
                                file=draw(files),
                                line=draw(lines))

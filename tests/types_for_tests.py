@@ -8,7 +8,12 @@ import dataclasses
 
 
 SPECIAL_TYPES = [type(None),
+                 type(NotImplemented),
                  bool]
+
+
+COMMON_TYPES = [object,
+                type]
 
 
 BASE_TYPES = [int,
@@ -19,8 +24,6 @@ BASE_TYPES = [int,
               frozenset,
               list,
               tuple,
-              type,
-              object,
               fractions.Fraction,
               complex,
               Exception]
@@ -71,4 +74,4 @@ CUSTOM_TYPES = [ExampleA,
                 ExampleDataclass]
 
 
-TYPES = [*SPECIAL_TYPES, *BASE_TYPES, *DERIVED_TYPES, *CUSTOM_TYPES]
+TYPES = [*SPECIAL_TYPES, *COMMON_TYPES, *BASE_TYPES, *DERIVED_TYPES, *CUSTOM_TYPES]

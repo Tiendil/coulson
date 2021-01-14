@@ -1,30 +1,21 @@
 import sys
-import inspect
-import warnings
 import contextlib
 
 from . import types_comparators
 from . import exceptions
 from . import inspectors
 from . import namespaces
-from . import logic
 
 
-def construct_variable(frame_info, name, expected_type):
+def construct_variable(name, expected_type, is_annotation, filename, line):
     return namespaces.Variable(name=name,
                                expected_type=expected_type,
-                               file=frame_info.filename,
-                               line=frame_info.lineno)
+                               is_annotation=is_annotation,
+                               file=filename,
+                               line=line)
 
 
-def analyze_variable(frame, function, namespace, name):
-
-    initialized, value = inspectors.frame_variable_value(frame, name)
-
-    if not initialized:
-        return
-
-    frame_info = inspect.getframeinfo(frame)
+def analyze_variable(frame, function, namespace, name, value):
 
     annotation_type = None
 
@@ -36,7 +27,7 @@ def analyze_variable(frame, function, namespace, name):
             continue
 
         # TODO: check if annotations is related to each other
-        #       or remove check at all, since annotations produced by programmer and they know what doing
+        #       or remove check at all, since annotations produced by programmers and they know what doing
         if annotation_type is not annotation:
             raise AnnotationsMistmatch(name, annotation_type, annotation)
 
@@ -44,46 +35,57 @@ def analyze_variable(frame, function, namespace, name):
 
     new_type = value_type
 
-    print(f'{new_type=} {annotation_type=}')
+    is_annotation = False
 
     if annotation_type is not None:
         if types_comparators.is_subtype_or_equal(new_type, annotation_type):
             new_type = annotation_type
+            is_annotation = True
         else:
             raise exceptions.TypeAnnotationMismatch(name,
                                                     value_type,
                                                     annotation_type,
-                                                    frame_info.filename,
-                                                    frame_info.lineno)
+                                                    frame.f_code.co_filename,
+                                                    frame.f_lineno)
 
     stored_variable = namespace.get(name)
 
     if stored_variable is None:
-        namespace.register(construct_variable(frame_info, name, new_type))
+        namespace.register(construct_variable(name,
+                                              new_type,
+                                              is_annotation,
+                                              frame.f_code.co_filename,
+                                              frame.f_lineno))
         return
 
     for merger in namespace.mergers:
-        if merger.merge(stored_variable, new_type):
+        if merger.merge(stored_variable, new_type, is_annotation):
             return
 
     raise exceptions.TypeMistmatch(name,
                                    stored_variable.expected_type,
+                                   stored_variable.is_annotation,
                                    new_type,
-                                   frame_info.filename,
-                                   frame_info.lineno)
+                                   is_annotation,
+                                   frame.f_code.co_filename,
+                                   frame.f_lineno)
 
 
 class Tracer:
-    __slots__ = ('_namespaces', 'initialized', '_mergers')
+    __slots__ = ('_namespaces', 'is_tracing', '_mergers', '_namespaces_cache')
 
     def __init__(self, namespaces):
         self._namespaces = namespaces
+        self.is_tracing = False
+        self._namespaces_cache = {}
 
     def start_tracing(self):
         sys.settrace(self.trace_callback)
+        self.is_tracing = True
 
     def stop_tracing(self):
         sys.settrace(None)
+        self.is_tracing = False
 
     @contextlib.contextmanager
     def trace(self):
@@ -97,27 +99,45 @@ class Tracer:
 
     def trace_callback(self, frame, event, arg):
 
-        frame.f_trace_lines = False
-        frame.f_trace_opcodes = True
+        filename = frame.f_code.co_filename
 
-        # setup trace function in frame, to not write it from every return statement
-        frame.f_trace = self.trace_callback
+        if filename not in self._namespaces_cache:
+            for namespace in self._namespaces:
+                if namespace.filter.check_frame(filename):
+                    self._namespaces_cache[filename] = namespace
+                    break
+            else:
+                self._namespaces_cache[filename] = None
+
+        found_namespace = self._namespaces_cache[filename]
+
+        if found_namespace is None:
+            return
 
         function = inspectors.determine_function(frame)
 
         if function is None:
-            warnings.warn(f'can not found function for frame {frame}')
             return
 
-        function_namespace = logic.function_namespace(function)
+        # function_namespace = logic.function_namespace(function)
 
-        for namespace in self._namespaces:
-            if not namespace.can_capture(function_namespace):
+        for name in inspectors.frame_variables(frame):
+            initialized, value = inspectors.frame_variable_value(frame, name)
+
+            if not initialized:
                 continue
 
-            for name in inspectors.frame_variables(frame):
-                analyze_variable(frame, function, namespace, name)
+            analyze_variable(frame, function, found_namespace, name, value)
 
-            break
+        # faster
+        frame.f_trace_lines = True
+        frame.f_trace_opcodes = False
+
+        # accuracy
+        # frame.f_trace_lines = False
+        # frame.f_trace_opcodes = True
+
+        # setup trace function in frame, to not write it from every return statement
+        frame.f_trace = self.trace_callback
 
         return
